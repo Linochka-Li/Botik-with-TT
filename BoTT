@@ -1,0 +1,243 @@
+import os
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+
+# ========== КОНФИГУРАЦИЯ ==========
+# Токен берётся из переменных окружения (на Render или локально)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# Проверка: если токена нет — выводим ошибку и не запускаемся
+if not BOT_TOKEN:
+    print("❌ ОШИБКА: BOT_TOKEN не найден в переменных окружения!")
+    print("👉 Создай переменную окружения BOT_TOKEN с токеном твоего бота")
+    print("👉 Или в PyCharm: добавь BOT_TOKEN в Environment Variables")
+    exit(1)
+
+# ========== БАЗА ДАННЫХ С ТРЕБОВАНИЯМИ ==========
+
+MARKETING_REQUIREMENTS = """
+📋 *Общие требования к маркировке (ФЗ №38, ст. 18.1, ч.16):*
+
+• Пометка "*Реклама*" — обязательно
+• "*Рекламодатель*": наименование юрлица и ИНН
+• Пример: 
+   *Реклама*
+   *Рекламодатель: ООО ""Сияние"" (ИНН 1234567890)*
+• Опционально: сайт рекламодателя
+• Пометка должна быть видна в течение всего времени отображения
+"""
+
+TECH_REQUIREMENTS = {
+    "olv": {
+        "name": "📹 OLV (Online Video)",
+        "position": "Пометка располагается в *правом верхнем углу*",
+        "requirements": """
+🎬 *Технические требования OLV:*
+
+• ⏱ Хронометраж: *не более 30 секунд*
+• 💾 Максимальный объем: *50 МБ*
+• 📐 Разрешение: *1280x720* или *1920x1080*
+
+*Поток:*
+• 🎥 Видео битрейт: *5-7 Мбит/сек*
+• 🎞 Частота кадров: *не более 25 к/сек*
+• 🔊 Аудио битрейт: *80-100 кбит/сек*
+• 🔇 Уровень громкости: *не более 30 дБ*
+• 📊 Общий битрейт: *5-7 Мбит/сек*
+
+*Формат:*
+• 📁 Формат файла: *MP4 (MPEG-4)*
+• 🎬 Видеокодек: *H.264*
+• 🔊 Аудиокодек: *AAC*
+
+*Дополнительно:*
+• ❌ Без кнопок и элементов, имитирующих интерфейс
+• ✅ Корректная работа в браузерах: IE 10+, Firefox 14+, Safari 5+, Chrome 18+
+• 📏 Сейф-зона: *по 60 пикселей сверху и снизу*
+"""
+    },
+    "display_graphic": {
+        "name": "🖼 Display - Графический баннер",
+        "position": "Пометка располагается в *левом верхнем углу*",
+        "requirements": """
+🖼 *Технические требования к графическому баннеру:*
+
+• 💾 Максимальный вес файла: *до 150 КБ*
+• 📁 Формат файла: *JPG, PNG, GIF*
+• 🖌 Креатив должен иметь видимую границу, отличную по цвету от фона
+
+*Допустимые размеры:*
+• 240×400
+• 728×90
+• 300×250
+• 160×600
+• 300×600
+• 320×50
+• 320×100
+• 250×250
+• 970×90
+"""
+    },
+    "display_html5": {
+        "name": "🎨 Display - HTML5 баннер",
+        "position": "Пометка располагается в *левом верхнем углу*",
+        "requirements": """
+🎨 *Технические требования к HTML5 баннеру:*
+
+• 💾 Максимальный вес файла: *до 150 КБ* (архив)
+• 📁 Формат: *ZIP архив*
+• 🖌 Креатив должен иметь видимую границу
+
+*Содержимое архива:*
+• index.html (единственный HTML-файл)
+• .png, .jpg, .jpeg, .gif, .css, .js, .svg (до 600 КБ)
+
+*Допустимые размеры:*
+• 240×400, 728×90, 300×250, 160×600, 300×600, 320×50, 320×100, 250×250, 970×90
+
+*Обязательные требования:*
+• ✅ Метатег размера в <head>:
+   `<meta name="ad.size" content="width=300,height=250">`
+• ✅ Все файлы в одной папке (без вложенных папок)
+• ✅ Обертка <body> в `<div id="Stage">...</div>`
+• ✅ Запрещены теги `<a>`
+• ✅ Сторонний параметр для защиты от кэша: `![random]`
+
+*Разрешённые внешние библиотеки:*
+• createjs-*.min.js (Adobe Edge Animate)
+• runtime.js (Swiffy)
+• Enabler.js (Google Web Designer)
+• jquery-*.min.js (jQuery)
+• TweenMax.min.js (GreenSock)
+"""
+    },
+    "onctv": {
+        "name": "📺 onCTV Apps",
+        "position": "Пометка располагается в *правом верхнем углу*",
+        "requirements": """
+📺 *Технические требования onCTV Apps:*
+
+• ⏱ Хронометраж: *не более 30 секунд*
+• 💾 Максимальный объем: *50 МБ*
+• 📐 Разрешение: *1280x720* или *1920x1080*
+
+*Поток:*
+• 🎥 Видео битрейт: *5-7 Мбит/сек*
+• 🎞 Частота кадров: *не более 25 к/сек*
+• 🔊 Аудио битрейт: *80-100 кбит/сек*
+• 🔇 Уровень громкости: *не более 30 дБ*
+
+*Формат:*
+• 📁 Формат файла: *MP4 (MPEG-4)*
+• 🎬 Видеокодек: *H.264*
+• 🔊 Аудиокодек: *AAC*
+
+*Сейф-зона:*
+• 📏 *60 пикселей сверху и снизу*
+   (вверху: плашка рекламы и erid, внизу: плашка пропуска)
+"""
+    }
+}
+
+# ========== КЛАВИАТУРЫ ==========
+main_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📹 OLV")],
+        [KeyboardButton(text="🖼 Display")],
+        [KeyboardButton(text="📺 onCTV Apps")],
+        [KeyboardButton(text="ℹ️ Общие требования к маркировке")]
+    ],
+    resize_keyboard=True
+)
+
+display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="🖼 Графический баннер", callback_data="display_graphic"),
+        InlineKeyboardButton(text="🎨 HTML5 баннер", callback_data="display_html5")
+    ],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
+])
+
+# ========== ОБРАБОТЧИКИ ==========
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(storage=MemoryStorage())
+
+
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer(
+        "📁 *Бот технических требований к форматам рекламы*\n\n"
+        "Я помогу тебе получить технические требования для разных типов рекламных материалов.\n\n"
+        "Выбери нужный формат:",
+        reply_markup=main_keyboard,
+        parse_mode="Markdown"
+    )
+
+
+@dp.message(lambda message: message.text == "ℹ️ Общие требования к маркировке")
+async def show_marketing(message: types.Message):
+    await message.answer(MARKETING_REQUIREMENTS, parse_mode="Markdown")
+    await message.answer("Выбери формат для технических требований:", reply_markup=main_keyboard)
+
+
+@dp.message(lambda message: message.text == "📹 OLV")
+async def show_olv(message: types.Message):
+    data = TECH_REQUIREMENTS["olv"]
+    await message.answer(
+        f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
+        parse_mode="Markdown"
+    )
+    await message.answer("Выбери другой формат:", reply_markup=main_keyboard)
+
+
+@dp.message(lambda message: message.text == "🖼 Display")
+async def show_display_menu(message: types.Message):
+    await message.answer("Выбери тип баннера:", reply_markup=display_keyboard)
+
+
+@dp.message(lambda message: message.text == "📺 onCTV Apps")
+async def show_onctv(message: types.Message):
+    data = TECH_REQUIREMENTS["onctv"]
+    await message.answer(
+        f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
+        parse_mode="Markdown"
+    )
+    await message.answer("Выбери другой формат:", reply_markup=main_keyboard)
+
+
+@dp.callback_query()
+async def handle_callback(callback: types.CallbackQuery):
+    if callback.data == "display_graphic":
+        data = TECH_REQUIREMENTS["display_graphic"]
+        await callback.message.edit_text(
+            f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
+            parse_mode="Markdown"
+        )
+        await callback.message.answer("Выбери другой формат:", reply_markup=main_keyboard)
+
+    elif callback.data == "display_html5":
+        data = TECH_REQUIREMENTS["display_html5"]
+        await callback.message.answer(
+            f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
+            parse_mode="Markdown"
+        )
+        await callback.message.answer("Выбери другой формат:", reply_markup=main_keyboard)
+
+    elif callback.data == "back_to_main":
+        await callback.message.delete()
+        await callback.message.answer("Выбери формат:", reply_markup=main_keyboard)
+
+    await callback.answer()
+
+
+# ========== ЗАПУСК ==========
+async def main():
+    print("🤖 Бот-справочник запущен!")
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
