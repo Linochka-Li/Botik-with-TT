@@ -420,10 +420,12 @@ async def handle_callback(callback: types.CallbackQuery):
     
     await callback.answer()
 
-
 # ========== ЗАПУСК ==========
 async def main():
-    print("🤖 Бот-справочник запущен!")
+    # --- ЭТА СТРОЧКА РЕШАЕТ ПРОБЛЕМУ ---
+    await bot.delete_webhook(drop_pending_updates=True)
+    # ------------------------------------
+    print("🤖 Старые подключения сброшены, запускаем...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
