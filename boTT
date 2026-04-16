@@ -204,35 +204,30 @@ TECH_REQUIREMENTS = {
     },
     
     # ========== Xiaomi ==========
-    "xiaomi_patchwall_banner": {
-        "name": "🖼 Xiaomi - PatchWall (баннер)",
-        "position": "Пометка располагается в *левом верхнем углу*",
-        "requirements": """
-🖼 *Технические требования Xiaomi - PatchWall (баннер):*
+   "xiaomi_patchwall": {
+    "name": "📺 Xiaomi - PatchWall",
+    "position": "Пометка располагается в *правом верхнем углу*",
+    "requirements": """
+📺 *Технические требования Xiaomi - PatchWall:*
 
-• 📐 Размер баннера: *640×360*
-• 📁 Формат: *JPG*
-• 💾 Вес: *до 300 КБ*
+*Размер баннера:* *640×360* (JPG, до 300 КБ)
 
-*Задний экран:*
-• 📐 Размер: *1920×840*
-• 📁 Формат: *JPG*
-• 💾 Вес: *до 1 МБ*
+*Задний экран может быть либо баннером, либо видео:*
+
+🖼 *Вариант 1 — Баннер:*
+• Размер: *1920×840*
+• Формат: *JPG*
+• Вес: *до 1 МБ*
+
+📹 *Вариант 2 — Видео:*
+• Качество: *не ниже 720p*
+• Размер: *1920×1080*
+• Длительность: *до 30 секунд*
+• Вес: *до 30 МБ*
+• Формат: *MP4 (H.264, AAC)*
 """
-    },
-    "xiaomi_patchwall_video": {
-        "name": "📹 Xiaomi - PatchWall (видео)",
-        "position": "Пометка располагается в *правом верхнем углу*",
-        "requirements": """
-📹 *Технические требования Xiaomi - PatchWall (видео):*
-
-• 🎬 Качество: *не ниже 720p*
-• 📐 Размер: *1920×1080*
-• ⏱ Длина видео: *до 30 секунд*
-• 💾 Вес: *до 30 МБ*
-"""
-    },
-    
+},
+  
     # ========== Haier ==========
     "haier_banner": {
         "name": "🖼 Haier - Баннер на главной странице Haier evo tv",
@@ -254,8 +249,8 @@ main_keyboard = ReplyKeyboardMarkup(
         [KeyboardButton(text="🖼 Display")],
         [KeyboardButton(text="📺 onCTV Apps")],
         [KeyboardButton(text="📺 TCL")],
-        [KeyboardButton(text="📱 Xiaomi")],
-        [KeyboardButton(text="🏠 Haier")],
+        [KeyboardButton(text="📺 Xiaomi")],
+        [KeyboardButton(text="📺 Haier")],
         [KeyboardButton(text="ℹ️ Общие требования к маркировке")]
     ],
     resize_keyboard=True
@@ -283,12 +278,9 @@ tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# Клавиатура для Xiaomi
+# Клавиатура для Xiaomi (теперь без подменю)
 xiaomi_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text="🖼 Баннер", callback_data="xiaomi_patchwall_banner"),
-        InlineKeyboardButton(text="📹 Видео", callback_data="xiaomi_patchwall_video")
-    ],
+    [InlineKeyboardButton(text="📺 PatchWall", callback_data="xiaomi_patchwall")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
@@ -344,7 +336,12 @@ async def show_tcl_menu(message: types.Message):
 
 @dp.message(lambda message: message.text == "📱 Xiaomi")
 async def show_xiaomi_menu(message: types.Message):
-    await message.answer("Выбери тип креатива для Xiaomi:", reply_markup=xiaomi_keyboard)
+    await message.answer(
+        "📺 *Xiaomi*\n\n"
+        "PatchWall — основной формат размещения:",
+        reply_markup=xiaomi_keyboard,
+        parse_mode="Markdown"
+    )
 
 
 @dp.message(lambda message: message.text == "🏠 Haier")
@@ -400,18 +397,12 @@ async def handle_callback(callback: types.CallbackQuery):
         )
     
     # Xiaomi
-    elif callback.data == "xiaomi_patchwall_banner":
-        data = TECH_REQUIREMENTS["xiaomi_patchwall_banner"]
-        await callback.message.edit_text(
-            f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
-            parse_mode="Markdown"
-        )
-    elif callback.data == "xiaomi_patchwall_video":
-        data = TECH_REQUIREMENTS["xiaomi_patchwall_video"]
-        await callback.message.edit_text(
-            f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
-            parse_mode="Markdown"
-        )
+    elif callback.data == "xiaomi_patchwall":
+    data = TECH_REQUIREMENTS["xiaomi_patchwall"]
+    await callback.message.edit_text(
+        f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
+        parse_mode="Markdown"
+    )
     
     # Назад
     elif callback.data == "back_to_main":
