@@ -203,11 +203,11 @@ TECH_REQUIREMENTS = {
 """
     },
     
-    # ========== Xiaomi ==========
-   "xiaomi_patchwall": {
-    "name": "📺 Xiaomi - PatchWall",
-    "position": "Пометка располагается в *правом верхнем углу*",
-    "requirements": """
+    # ========== Xiaomi (один формат с двумя вариантами) ==========
+    "xiaomi_patchwall": {
+        "name": "📺 Xiaomi - PatchWall",
+        "position": "Пометка располагается в *правом верхнем углу*",
+        "requirements": """
 📺 *Технические требования Xiaomi - PatchWall:*
 
 *Размер баннера:* *640×360* (JPG, до 300 КБ)
@@ -226,14 +226,14 @@ TECH_REQUIREMENTS = {
 • Вес: *до 30 МБ*
 • Формат: *MP4 (H.264, AAC)*
 """
-},
-  
+    },
+    
     # ========== Haier ==========
     "haier_banner": {
-        "name": "🖼 Haier - Баннер на главной странице Haier evo tv",
+        "name": "📺 Haier - Баннер на главной странице Haier evo tv",
         "position": "Пометка располагается в *левом верхнем углу*",
         "requirements": """
-🖼 *Технические требования Haier:*
+📺 *Технические требования Haier:*
 
 • 💾 Максимальный вес: *до 5 МБ*
 • 📐 Рекомендуемое разрешение: *2136×896*
@@ -278,7 +278,7 @@ tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# Клавиатура для Xiaomi (теперь без подменю)
+# Клавиатура для Xiaomi (один пункт)
 xiaomi_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="📺 PatchWall", callback_data="xiaomi_patchwall")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
@@ -303,7 +303,6 @@ async def cmd_start(message: types.Message):
 @dp.message(lambda message: message.text == "ℹ️ Общие требования к маркировке")
 async def show_marketing(message: types.Message):
     await message.answer(MARKETING_REQUIREMENTS, parse_mode="Markdown")
-    await message.answer("Выбери формат для технических требований:", reply_markup=main_keyboard)
 
 
 @dp.message(lambda message: message.text == "📹 OLV")
@@ -334,17 +333,16 @@ async def show_tcl_menu(message: types.Message):
     await message.answer("Выбери тип креатива для TCL:", reply_markup=tcl_keyboard)
 
 
-@dp.message(lambda message: message.text == "📱 Xiaomi")
+@dp.message(lambda message: message.text == "📺 Xiaomi")
 async def show_xiaomi_menu(message: types.Message):
     await message.answer(
-        "📺 *Xiaomi*\n\n"
-        "PatchWall — основной формат размещения:",
+        "📺 *Xiaomi*\n\nPatchWall — основной формат размещения:",
         reply_markup=xiaomi_keyboard,
         parse_mode="Markdown"
     )
 
 
-@dp.message(lambda message: message.text == "🏠 Haier")
+@dp.message(lambda message: message.text == "📺 Haier")
 async def show_haier(message: types.Message):
     data = TECH_REQUIREMENTS["haier_banner"]
     await message.answer(
@@ -398,11 +396,11 @@ async def handle_callback(callback: types.CallbackQuery):
     
     # Xiaomi
     elif callback.data == "xiaomi_patchwall":
-    data = TECH_REQUIREMENTS["xiaomi_patchwall"]
-    await callback.message.edit_text(
-        f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
-        parse_mode="Markdown"
-    )
+        data = TECH_REQUIREMENTS["xiaomi_patchwall"]
+        await callback.message.edit_text(
+            f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
+            parse_mode="Markdown"
+        )
     
     # Назад
     elif callback.data == "back_to_main":
@@ -411,12 +409,12 @@ async def handle_callback(callback: types.CallbackQuery):
     
     await callback.answer()
 
+
 # ========== ЗАПУСК ==========
 async def main():
-    # --- ЭТА СТРОЧКА РЕШАЕТ ПРОБЛЕМУ ---
+    # Принудительно удаляем вебхук перед запуском (избегаем конфликта)
     await bot.delete_webhook(drop_pending_updates=True)
-    # ------------------------------------
-    print("🤖 Старые подключения сброшены, запускаем...")
+    print("🤖 Вебхук удалён, запускаем бота...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
