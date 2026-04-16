@@ -3,7 +3,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -27,7 +27,6 @@ MARKETING_REQUIREMENTS = """
 """
 
 TECH_REQUIREMENTS = {
-    # ========== OLV ==========
     "olv": {
         "name": "📹 OLV (Online Video)",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -49,15 +48,8 @@ TECH_REQUIREMENTS = {
 • 📁 Формат файла: *MP4 (MPEG-4)*
 • 🎬 Видеокодек: *H.264*
 • 🔊 Аудиокодек: *AAC*
-
-*Дополнительно:*
-• ❌ Без кнопок и элементов, имитирующих интерфейс
-• ✅ Корректная работа в браузерах: IE 10+, Firefox 14+, Safari 5+, Chrome 18+
-• 📏 Сейф-зона: *по 60 пикселей сверху и снизу*
 """
     },
-    
-    # ========== DISPLAY ==========
     "display_graphic": {
         "name": "🖼 Display - Графический баннер",
         "position": "Пометка располагается в *левом верхнем углу*",
@@ -66,18 +58,10 @@ TECH_REQUIREMENTS = {
 
 • 💾 Максимальный вес файла: *до 150 КБ*
 • 📁 Формат файла: *JPG, PNG, GIF*
-• 🖌 Креатив должен иметь видимую границу, отличную по цвету от фона
+• 🖌 Креатив должен иметь видимую границу
 
 *Допустимые размеры:*
-• 240×400
-• 728×90
-• 300×250
-• 160×600
-• 300×600
-• 320×50
-• 320×100
-• 250×250
-• 970×90
+• 240×400, 728×90, 300×250, 160×600, 300×600, 320×50, 320×100, 250×250, 970×90
 """
     },
     "display_html5": {
@@ -86,35 +70,21 @@ TECH_REQUIREMENTS = {
         "requirements": """
 🎨 *Технические требования к HTML5 баннеру:*
 
-• 💾 Максимальный вес файла: *до 150 КБ* (архив)
+• 💾 Максимальный вес: *до 150 КБ* (архив)
 • 📁 Формат: *ZIP архив*
 • 🖌 Креатив должен иметь видимую границу
 
 *Содержимое архива:*
 • index.html (единственный HTML-файл)
-• .png, .jpg, .jpeg, .gif, .css, .js, .svg (до 600 КБ)
-
-*Допустимые размеры:*
-• 240×400, 728×90, 300×250, 160×600, 300×600, 320×50, 320×100, 250×250, 970×90
+• .png, .jpg, .jpeg, .gif, .css, .js, .svg
 
 *Обязательные требования:*
-• ✅ Метатег размера в <head>:
-   `<meta name="ad.size" content="width=300,height=250">`
-• ✅ Все файлы в одной папке (без вложенных папок)
-• ✅ Обертка <body> в `<div id="Stage">...</div>`
-• ✅ Запрещены теги `<a>`
-• ✅ Сторонний параметр для защиты от кэша: `![random]`
-
-*Разрешённые внешние библиотеки:*
-• createjs-*.min.js (Adobe Edge Animate)
-• runtime.js (Swiffy)
-• Enabler.js (Google Web Designer)
-• jquery-*.min.js (jQuery)
-• TweenMax.min.js (GreenSock)
+• Метатег размера в <head>
+• Все файлы в одной папке
+• Запрещены теги `<a>`
+• Сторонний параметр для кэша: `![random]`
 """
     },
-    
-    # ========== onCTV Apps ==========
     "onctv": {
         "name": "📺 onCTV Apps",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -129,44 +99,24 @@ TECH_REQUIREMENTS = {
 • 🎥 Видео битрейт: *5-7 Мбит/сек*
 • 🎞 Частота кадров: *не более 25 к/сек*
 • 🔊 Аудио битрейт: *80-100 кбит/сек*
-• 🔇 Уровень громкости: *не более 30 дБ*
-
-*Формат:*
-• 📁 Формат файла: *MP4 (MPEG-4)*
-• 🎬 Видеокодек: *H.264*
-• 🔊 Аудиокодек: *AAC*
 
 *Сейф-зона:*
 • 📏 *60 пикселей сверху и снизу*
-   (вверху: плашка рекламы и erid, внизу: плашка пропуска)
 """
     },
-    
-    # ========== TCL ==========
     "tcl_homepage_video": {
-        "name": "📺 TCL - Homepage Ad slot (Video) / TCL Channel",
+        "name": "📺 TCL - Homepage Video",
         "position": "Пометка располагается в *правом верхнем углу*",
         "requirements": """
-📺 *Технические требования TCL - Homepage Ad slot (Video):*
+📺 *Технические требования TCL - Homepage Video:*
 
 • ⏱ Хронометраж: *не более 60 секунд*
-• 💾 Максимальный объем: *не ограничен*
-• 📐 Рекомендуемое разрешение: *1920x1080* или *1280x720*
-
-*Поток:*
+• 📐 Разрешение: *1920x1080* или *1280x720*
 • 🎥 Видео битрейт: *400-450 кбит/сек*
 • 🎞 Частота кадров: *не более 25 к/сек*
 • 🔊 Аудио битрейт: *80-100 кбит/сек*
-• 🔇 Уровень громкости: *не более 30 дБ*
 • 📊 Общий битрейт: *480-550 кбит/сек*
-
-*Формат:*
-• 📁 Формат файла: *MP4 (MPEG-4)*
-• 🎬 Видеокодек: *H.264*
-• 🔊 Аудиокодек: *AAC*
-
-*Дополнительно:*
-• ❌ Без кнопок и элементов, имитирующих интерфейс
+• 📁 Формат: *MP4 (H.264, AAC)*
 """
     },
     "tcl_launcher_banner": {
@@ -176,7 +126,6 @@ TECH_REQUIREMENTS = {
 🖼 *Технические требования TCL - Launcher Banner:*
 
 • 📁 Формат: *JPG / JPEG*
-• 💾 Максимальный объем: *не ограничен*
 • 📐 Соотношение сторон: *16:9*
 """
     },
@@ -187,56 +136,42 @@ TECH_REQUIREMENTS = {
 🖼 *Технические требования TCL - Banner in BrowseHere:*
 
 • 📁 Формат: *JPG / JPEG*
-• 💾 Максимальный вес: *до 500 КБ*
+• 💾 Вес: *до 500 КБ*
 • 📐 Размер: *372×210*
 """
     },
     "tcl_homepage_banner": {
-        "name": "🖼 TCL - Homepage banner Adslot",
+        "name": "🖼 TCL - Homepage Banner",
         "position": "Пометка располагается в *левом верхнем углу*",
         "requirements": """
-🖼 *Технические требования TCL - Homepage banner Adslot:*
+🖼 *Технические требования TCL - Homepage Banner:*
 
 • 📁 Формат: *JPG / JPEG*
-• 💾 Максимальный вес: *до 500 КБ*
+• 💾 Вес: *до 500 КБ*
 • 📐 Размер: *982×340*
 """
     },
-    
-    # ========== Xiaomi (один формат с двумя вариантами) ==========
     "xiaomi_patchwall": {
         "name": "📺 Xiaomi - PatchWall",
         "position": "Пометка располагается в *правом верхнем углу*",
         "requirements": """
 📺 *Технические требования Xiaomi - PatchWall:*
 
-*Размер баннера:* *640×360* (JPG, до 300 КБ)
+• Баннер: *640×360* (JPG, до 300 КБ)
 
-*Задний экран может быть либо баннером, либо видео:*
-
-🖼 *Вариант 1 — Баннер:*
-• Размер: *1920×840*
-• Формат: *JPG*
-• Вес: *до 1 МБ*
-
-📹 *Вариант 2 — Видео:*
-• Качество: *не ниже 720p*
-• Размер: *1920×1080*
-• Длительность: *до 30 секунд*
-• Вес: *до 30 МБ*
-• Формат: *MP4 (H.264, AAC)*
+*Задний экран:*
+• Баннер: *1920×840* (JPG, до 1 МБ)
+• Видео: *1920×1080*, до 30 сек, до 30 МБ (MP4, H.264, AAC)
 """
     },
-    
-    # ========== Haier ==========
     "haier_banner": {
-        "name": "📺 Haier - Баннер на главной странице Haier evo tv",
+        "name": "📺 Haier - Баннер",
         "position": "Пометка располагается в *левом верхнем углу*",
         "requirements": """
 📺 *Технические требования Haier:*
 
-• 💾 Максимальный вес: *до 5 МБ*
-• 📐 Рекомендуемое разрешение: *2136×896*
+• 💾 Вес: *до 5 МБ*
+• 📐 Разрешение: *2136×896*
 • 📁 Формат: *JPG / JPEG / PNG*
 """
     }
@@ -256,7 +191,6 @@ main_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# Клавиатура для Display
 display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="🖼 Графический баннер", callback_data="display_graphic"),
@@ -265,7 +199,6 @@ display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# Клавиатура для TCL
 tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="📹 Homepage Video", callback_data="tcl_homepage_video"),
@@ -278,7 +211,6 @@ tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# Клавиатура для Xiaomi (один пункт)
 xiaomi_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="📺 PatchWall", callback_data="xiaomi_patchwall")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
@@ -288,22 +220,23 @@ xiaomi_keyboard = InlineKeyboardMarkup(inline_keyboard=[
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
+# Функция для отправки файла (только для OLV, Display, onCTV)
+async def send_file_if_exists(message, filename, caption="📊 Технические требования в Excel"):
+    if os.path.exists(f"files/{filename}"):
+        await message.answer_document(FSInputFile(f"files/{filename}"), caption=caption)
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer(
         "📁 *Бот технических требований к форматам рекламы*\n\n"
-        "Я помогу тебе получить технические требования для разных типов рекламных материалов.\n\n"
         "Выбери нужный формат:",
         reply_markup=main_keyboard,
         parse_mode="Markdown"
     )
 
-
 @dp.message(lambda message: message.text == "ℹ️ Общие требования к маркировке")
 async def show_marketing(message: types.Message):
     await message.answer(MARKETING_REQUIREMENTS, parse_mode="Markdown")
-
 
 @dp.message(lambda message: message.text == "📹 OLV")
 async def show_olv(message: types.Message):
@@ -312,12 +245,11 @@ async def show_olv(message: types.Message):
         f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
         parse_mode="Markdown"
     )
-
+    await send_file_if_exists(message, "olv.xlsx")
 
 @dp.message(lambda message: message.text == "🖼 Display")
 async def show_display_menu(message: types.Message):
     await message.answer("Выбери тип баннера:", reply_markup=display_keyboard)
-
 
 @dp.message(lambda message: message.text == "📺 onCTV Apps")
 async def show_onctv(message: types.Message):
@@ -326,12 +258,11 @@ async def show_onctv(message: types.Message):
         f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
         parse_mode="Markdown"
     )
-
+    await send_file_if_exists(message, "onctv.xlsx")
 
 @dp.message(lambda message: message.text == "📺 TCL")
 async def show_tcl_menu(message: types.Message):
     await message.answer("Выбери тип креатива для TCL:", reply_markup=tcl_keyboard)
-
 
 @dp.message(lambda message: message.text == "📺 Xiaomi")
 async def show_xiaomi_menu(message: types.Message):
@@ -341,7 +272,6 @@ async def show_xiaomi_menu(message: types.Message):
         parse_mode="Markdown"
     )
 
-
 @dp.message(lambda message: message.text == "📺 Haier")
 async def show_haier(message: types.Message):
     data = TECH_REQUIREMENTS["haier_banner"]
@@ -349,44 +279,50 @@ async def show_haier(message: types.Message):
         f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
         parse_mode="Markdown"
     )
+    # Файл для Haier НЕ отправляется
 
-
-# ========== ОБРАБОТКА INLINE КНОПОК ==========
+# ========== INLINE КНОПКИ ==========
 @dp.callback_query()
 async def handle_callback(callback: types.CallbackQuery):
-    # Display
+    # Display (с файлами)
     if callback.data == "display_graphic":
         data = TECH_REQUIREMENTS["display_graphic"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        await send_file_if_exists(callback.message, "display_graphic.xlsx")
+        
     elif callback.data == "display_html5":
         data = TECH_REQUIREMENTS["display_html5"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        await send_file_if_exists(callback.message, "display_html5.xlsx")
     
-    # TCL
+    # TCL (без файлов)
     elif callback.data == "tcl_homepage_video":
         data = TECH_REQUIREMENTS["tcl_homepage_video"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        
     elif callback.data == "tcl_launcher_banner":
         data = TECH_REQUIREMENTS["tcl_launcher_banner"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        
     elif callback.data == "tcl_browsehere":
         data = TECH_REQUIREMENTS["tcl_browsehere"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        
     elif callback.data == "tcl_homepage_banner":
         data = TECH_REQUIREMENTS["tcl_homepage_banner"]
         await callback.message.edit_text(
@@ -394,7 +330,7 @@ async def handle_callback(callback: types.CallbackQuery):
             parse_mode="Markdown"
         )
     
-    # Xiaomi
+    # Xiaomi (без файла)
     elif callback.data == "xiaomi_patchwall":
         data = TECH_REQUIREMENTS["xiaomi_patchwall"]
         await callback.message.edit_text(
@@ -409,12 +345,10 @@ async def handle_callback(callback: types.CallbackQuery):
     
     await callback.answer()
 
-
 # ========== ЗАПУСК ==========
 async def main():
-    # Принудительно удаляем вебхук перед запуском (избегаем конфликта)
     await bot.delete_webhook(drop_pending_updates=True)
-    print("🤖 Вебхук удалён, запускаем бота...")
+    print("🤖 Бот запущен!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
