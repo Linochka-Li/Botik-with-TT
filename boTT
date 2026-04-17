@@ -345,11 +345,33 @@ async def handle_callback(callback: types.CallbackQuery):
     
     await callback.answer()
 
-# ========== ЗАПУСК ==========
+# ========== ВЕБХУК И ЗАПУСК ==========
+from fastapi import FastAPI, Request
+import uvicorn
+
+app = FastAPI()
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    update = types.Update(**(await request.json()))
+    await dp.feed_update(bot, update)
+    return {"ok": True}
+
+@app.get("/healthcheck")
+async def healthcheck():
+    return {"status": "ok"}
+
+async def on_startup():
+    webhook_url = f"{os.getenv('RENDER_EXTERNAL_URL')}/webhook"
+    await bot.set_webhook(webhook_url)
+    print(f"✅ Webhook set to {webhook_url}")
+
 async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
-    print("🤖 Бот запущен!")
-    await dp.start_polling(bot)
+    await on_startup()
+    # Запускаем FastAPI (не нужно start_polling)
+    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+    server = uvicorn.Server(config)
+    await server.serve()
 
 if __name__ == "__main__":
     asyncio.run(main())
