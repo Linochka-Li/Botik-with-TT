@@ -1,20 +1,19 @@
 import os
 import asyncio
-from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
-import uvicorn
 
 # ========== КОНФИГУРАЦИЯ ==========
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # Токен берётся из переменных окружения Render
 
 if not BOT_TOKEN:
     print("❌ ОШИБКА: BOT_TOKEN не найден в переменных окружения!")
     exit(1)
 
 # ========== БАЗА ДАННЫХ С ТРЕБОВАНИЯМИ ==========
+
 MARKETING_REQUIREMENTS = """
 📋 *Общие требования к маркировке (ФЗ №38, ст. 18.1, ч.16):*
 
@@ -28,6 +27,7 @@ MARKETING_REQUIREMENTS = """
 """
 
 TECH_REQUIREMENTS = {
+    # ===== OLV =====
     "olv": {
         "name": "📹 OLV (Online Video)",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -37,23 +37,34 @@ TECH_REQUIREMENTS = {
 • ⏱ Хронометраж: *не более 30 секунд*
 • 💾 Максимальный объем: *50 МБ*
 • 📐 Разрешение: *1280x720* или *1920x1080*
+
+*Поток:*
 • 🎥 Видео битрейт: *5-7 Мбит/сек*
 • 🎞 Частота кадров: *не более 25 к/сек*
 • 🔊 Аудио битрейт: *80-100 кбит/сек*
-• 📁 Формат: *MP4 (MPEG-4)*
+• 🔇 Уровень громкости: *не более 30 дБ*
+• 📊 Общий битрейт: *5-7 Мбит/сек*
+
+*Формат:*
+• 📁 Формат файла: *MP4 (MPEG-4)*
 • 🎬 Видеокодек: *H.264*
 • 🔊 Аудиокодек: *AAC*
 """
     },
+    
+    # ===== DISPLAY =====
     "display_graphic": {
         "name": "🖼 Display - Графический баннер",
         "position": "Пометка располагается в *левом верхнем углу*",
         "requirements": """
 🖼 *Технические требования к графическому баннеру:*
 
-• 💾 Вес: *до 150 КБ*
-• 📁 Формат: *JPG, PNG, GIF*
-• 📐 Размеры: 240×400, 728×90, 300×250, 160×600, 300×600, 320×50, 320×100, 250×250, 970×90
+• 💾 Максимальный вес файла: *до 150 КБ*
+• 📁 Формат файла: *JPG, PNG, GIF*
+• 🖌 Креатив должен иметь видимую границу
+
+*Допустимые размеры:*
+• 240×400, 728×90, 300×250, 160×600, 300×600, 320×50, 320×100, 250×250, 970×90
 """
     },
     "display_html5": {
@@ -62,14 +73,23 @@ TECH_REQUIREMENTS = {
         "requirements": """
 🎨 *Технические требования к HTML5 баннеру:*
 
-• 💾 Вес: *до 150 КБ* (архив)
+• 💾 Максимальный вес: *до 150 КБ* (архив)
 • 📁 Формат: *ZIP архив*
-• 📐 Размеры: 240×400, 728×90, 300×250, 160×600, 300×600, 320×50, 320×100, 250×250, 970×90
-• 🏷 Метатег размера в <head>
-• 🚫 Запрещены теги `<a>`
-• 📁 Все файлы в одной папке
+• 🖌 Креатив должен иметь видимую границу
+
+*Содержимое архива:*
+• index.html (единственный HTML-файл)
+• .png, .jpg, .jpeg, .gif, .css, .js, .svg
+
+*Обязательные требования:*
+• Метатег размера в <head>
+• Все файлы в одной папке
+• Запрещены теги `<a>`
+• Сторонний параметр для кэша: `![random]`
 """
     },
+    
+    # ===== onCTV Apps =====
     "onctv": {
         "name": "📺 onCTV Apps",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -77,13 +97,20 @@ TECH_REQUIREMENTS = {
 📺 *Технические требования onCTV Apps:*
 
 • ⏱ Хронометраж: *не более 30 секунд*
-• 💾 Объем: *до 50 МБ*
+• 💾 Максимальный объем: *50 МБ*
 • 📐 Разрешение: *1280x720* или *1920x1080*
+
+*Поток:*
 • 🎥 Видео битрейт: *5-7 Мбит/сек*
 • 🎞 Частота кадров: *не более 25 к/сек*
-• 📏 Сейф-зона: *60 пикселей сверху и снизу*
+• 🔊 Аудио битрейт: *80-100 кбит/сек*
+
+*Сейф-зона:*
+• 📏 *60 пикселей сверху и снизу*
 """
     },
+    
+    # ===== TCL =====
     "tcl_homepage_video": {
         "name": "📺 TCL - Homepage Video",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -93,6 +120,8 @@ TECH_REQUIREMENTS = {
 • ⏱ Хронометраж: *не более 60 секунд*
 • 📐 Разрешение: *1920x1080* или *1280x720*
 • 🎥 Видео битрейт: *400-450 кбит/сек*
+• 🎞 Частота кадров: *не более 25 к/сек*
+• 🔊 Аудио битрейт: *80-100 кбит/сек*
 • 📊 Общий битрейт: *480-550 кбит/сек*
 • 📁 Формат: *MP4 (H.264, AAC)*
 """
@@ -129,6 +158,8 @@ TECH_REQUIREMENTS = {
 • 📐 Размер: *982×340*
 """
     },
+    
+    # ===== Xiaomi =====
     "xiaomi_patchwall": {
         "name": "📺 Xiaomi - PatchWall",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -136,10 +167,14 @@ TECH_REQUIREMENTS = {
 📺 *Технические требования Xiaomi - PatchWall:*
 
 • Баннер: *640×360* (JPG, до 300 КБ)
-• Задний экран (баннер): *1920×840* (JPG, до 1 МБ)
-• Задний экран (видео): *1920×1080*, до 30 сек, до 30 МБ (MP4)
+
+*Задний экран:*
+• Баннер: *1920×840* (JPG, до 1 МБ)
+• Видео: *1920×1080*, до 30 сек, до 30 МБ (MP4, H.264, AAC)
 """
     },
+    
+    # ===== Haier =====
     "haier_banner": {
         "name": "📺 Haier - Баннер",
         "position": "Пометка располагается в *левом верхнем углу*",
@@ -154,6 +189,8 @@ TECH_REQUIREMENTS = {
 }
 
 # ========== КЛАВИАТУРЫ ==========
+
+# Главное меню
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📹 OLV")],
@@ -167,6 +204,7 @@ main_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+# Меню для Display
 display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="🖼 Графический баннер", callback_data="display_graphic"),
@@ -175,6 +213,7 @@ display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
+# Меню для TCL
 tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="📹 Homepage Video", callback_data="tcl_homepage_video"),
@@ -187,19 +226,22 @@ tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
+# Меню для Xiaomi
 xiaomi_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="📺 PatchWall", callback_data="xiaomi_patchwall")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# ========== ОБРАБОТЧИКИ ==========
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
-
+# ========== ФУНКЦИЯ ДЛЯ ОТПРАВКИ ФАЙЛОВ ==========
 async def send_file_if_exists(message, filename, caption="📊 Технические требования в Excel"):
     if os.path.exists(f"files/{filename}"):
         await message.answer_document(FSInputFile(f"files/{filename}"), caption=caption)
 
+# ========== ОБРАБОТЧИКИ ==========
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(storage=MemoryStorage())
+
+# Команда /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer(
@@ -209,10 +251,12 @@ async def cmd_start(message: types.Message):
         parse_mode="Markdown"
     )
 
+# Общие требования
 @dp.message(lambda message: message.text == "ℹ️ Общие требования к маркировке")
 async def show_marketing(message: types.Message):
     await message.answer(MARKETING_REQUIREMENTS, parse_mode="Markdown")
 
+# OLV (с файлом)
 @dp.message(lambda message: message.text == "📹 OLV")
 async def show_olv(message: types.Message):
     data = TECH_REQUIREMENTS["olv"]
@@ -222,10 +266,12 @@ async def show_olv(message: types.Message):
     )
     await send_file_if_exists(message, "olv.xlsx")
 
+# Display (меню)
 @dp.message(lambda message: message.text == "🖼 Display")
 async def show_display_menu(message: types.Message):
     await message.answer("Выбери тип баннера:", reply_markup=display_keyboard)
 
+# onCTV Apps (с файлом)
 @dp.message(lambda message: message.text == "📺 onCTV Apps")
 async def show_onctv(message: types.Message):
     data = TECH_REQUIREMENTS["onctv"]
@@ -235,10 +281,12 @@ async def show_onctv(message: types.Message):
     )
     await send_file_if_exists(message, "onctv.xlsx")
 
+# TCL (меню)
 @dp.message(lambda message: message.text == "📺 TCL")
 async def show_tcl_menu(message: types.Message):
     await message.answer("Выбери тип креатива для TCL:", reply_markup=tcl_keyboard)
 
+# Xiaomi (меню)
 @dp.message(lambda message: message.text == "📺 Xiaomi")
 async def show_xiaomi_menu(message: types.Message):
     await message.answer(
@@ -247,6 +295,7 @@ async def show_xiaomi_menu(message: types.Message):
         parse_mode="Markdown"
     )
 
+# Haier
 @dp.message(lambda message: message.text == "📺 Haier")
 async def show_haier(message: types.Message):
     data = TECH_REQUIREMENTS["haier_banner"]
@@ -255,8 +304,10 @@ async def show_haier(message: types.Message):
         parse_mode="Markdown"
     )
 
+# ========== ОБРАБОТКА INLINE-КНОПОК ==========
 @dp.callback_query()
 async def handle_callback(callback: types.CallbackQuery):
+    # Display
     if callback.data == "display_graphic":
         data = TECH_REQUIREMENTS["display_graphic"]
         await callback.message.edit_text(
@@ -264,6 +315,7 @@ async def handle_callback(callback: types.CallbackQuery):
             parse_mode="Markdown"
         )
         await send_file_if_exists(callback.message, "display_graphic.xlsx")
+        
     elif callback.data == "display_html5":
         data = TECH_REQUIREMENTS["display_html5"]
         await callback.message.edit_text(
@@ -271,65 +323,56 @@ async def handle_callback(callback: types.CallbackQuery):
             parse_mode="Markdown"
         )
         await send_file_if_exists(callback.message, "display_html5.xlsx")
+    
+    # TCL
     elif callback.data == "tcl_homepage_video":
         data = TECH_REQUIREMENTS["tcl_homepage_video"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        
     elif callback.data == "tcl_launcher_banner":
         data = TECH_REQUIREMENTS["tcl_launcher_banner"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        
     elif callback.data == "tcl_browsehere":
         data = TECH_REQUIREMENTS["tcl_browsehere"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+        
     elif callback.data == "tcl_homepage_banner":
         data = TECH_REQUIREMENTS["tcl_homepage_banner"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+    
+    # Xiaomi
     elif callback.data == "xiaomi_patchwall":
         data = TECH_REQUIREMENTS["xiaomi_patchwall"]
         await callback.message.edit_text(
             f"{data['requirements']}\n\n📍 *Расположение пометки:* {data['position']}",
             parse_mode="Markdown"
         )
+    
+    # Назад
     elif callback.data == "back_to_main":
         await callback.message.delete()
         await callback.message.answer("Выбери формат:", reply_markup=main_keyboard)
+    
     await callback.answer()
 
-# ========== ВЕБХУК И ЗАПУСК ==========
-app = FastAPI()
-
-@app.post("/webhook")
-async def webhook(request: Request):
-    update_data = await request.json()
-    update = types.Update(**update_data)
-    await dp.feed_update(bot, update)
-    return {"ok": True}
-
-@app.get("/healthcheck")
-async def healthcheck():
-    return {"status": "ok"}
-
-async def on_startup():
-    webhook_url = f"{os.getenv('RENDER_EXTERNAL_URL')}/webhook"
-    await bot.set_webhook(webhook_url)
-    print(f"✅ Webhook set to {webhook_url}")
-
+# ========== ЗАПУСК ==========
 async def main():
-    await on_startup()
-    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
-    server = uvicorn.Server(config)
-    await server.serve()
+    await bot.delete_webhook(drop_pending_updates=True)
+    print("🤖 Бот-справочник запущен!")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
