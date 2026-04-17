@@ -1,13 +1,23 @@
 import os
 import asyncio
+import logging
+from starlette.applications import Starlette
+from starlette.routing import Route
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse, Response
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, Update, FSInputFile
 
-# ========== КОНФИГУРАЦИЯ ==========
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # Токен берётся из переменных окружения Render
+# ========== НАСТРОЙКИ ==========
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+URL = os.environ.get("RENDER_EXTERNAL_URL")
+PORT = int(os.getenv("PORT", 8000))
 
+logging.basicConfig(level=logging.INFO)
+
+# Проверка наличия токена
 if not BOT_TOKEN:
     print("❌ ОШИБКА: BOT_TOKEN не найден в переменных окружения!")
     exit(1)
@@ -27,7 +37,6 @@ MARKETING_REQUIREMENTS = """
 """
 
 TECH_REQUIREMENTS = {
-    # ===== OLV =====
     "olv": {
         "name": "📹 OLV (Online Video)",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -51,8 +60,6 @@ TECH_REQUIREMENTS = {
 • 🔊 Аудиокодек: *AAC*
 """
     },
-    
-    # ===== DISPLAY =====
     "display_graphic": {
         "name": "🖼 Display - Графический баннер",
         "position": "Пометка располагается в *левом верхнем углу*",
@@ -88,8 +95,6 @@ TECH_REQUIREMENTS = {
 • Сторонний параметр для кэша: `![random]`
 """
     },
-    
-    # ===== onCTV Apps =====
     "onctv": {
         "name": "📺 onCTV Apps",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -109,8 +114,6 @@ TECH_REQUIREMENTS = {
 • 📏 *60 пикселей сверху и снизу*
 """
     },
-    
-    # ===== TCL =====
     "tcl_homepage_video": {
         "name": "📺 TCL - Homepage Video",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -158,8 +161,6 @@ TECH_REQUIREMENTS = {
 • 📐 Размер: *982×340*
 """
     },
-    
-    # ===== Xiaomi =====
     "xiaomi_patchwall": {
         "name": "📺 Xiaomi - PatchWall",
         "position": "Пометка располагается в *правом верхнем углу*",
@@ -173,8 +174,6 @@ TECH_REQUIREMENTS = {
 • Видео: *1920×1080*, до 30 сек, до 30 МБ (MP4, H.264, AAC)
 """
     },
-    
-    # ===== Haier =====
     "haier_banner": {
         "name": "📺 Haier - Баннер",
         "position": "Пометка располагается в *левом верхнем углу*",
@@ -189,8 +188,6 @@ TECH_REQUIREMENTS = {
 }
 
 # ========== КЛАВИАТУРЫ ==========
-
-# Главное меню
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📹 OLV")],
@@ -204,7 +201,6 @@ main_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# Меню для Display
 display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="🖼 Графический баннер", callback_data="display_graphic"),
@@ -213,7 +209,6 @@ display_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# Меню для TCL
 tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [
         InlineKeyboardButton(text="📹 Homepage Video", callback_data="tcl_homepage_video"),
@@ -226,37 +221,39 @@ tcl_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# Меню для Xiaomi
 xiaomi_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="📺 PatchWall", callback_data="xiaomi_patchwall")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_main")]
 ])
 
-# ========== ФУНКЦИЯ ДЛЯ ОТПРАВКИ ФАЙЛОВ ==========
+# ========== ФУНКЦИЯ ДЛЯ ОТПРАВКИ ФАЙЛА ==========
 async def send_file_if_exists(message, filename, caption="📊 Технические требования в Excel"):
-    if os.path.exists(f"files/{filename}"):
-        await message.answer_document(FSInputFile(f"files/{filename}"), caption=caption)
+    file_path = f"files/{filename}"
+    if os.path.exists(file_path):
+        try:
+            document = FSInputFile(file_path)
+            await message.answer_document(document, caption=caption)
+        except Exception as e:
+            logging.error(f"Ошибка отправки файла {filename}: {e}")
 
 # ========== ОБРАБОТЧИКИ ==========
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# Команда /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer(
         "📁 *Бот технических требований к форматам рекламы*\n\n"
+        "Я помогу тебе получить технические требования для разных типов рекламных материалов.\n\n"
         "Выбери нужный формат:",
         reply_markup=main_keyboard,
         parse_mode="Markdown"
     )
 
-# Общие требования
 @dp.message(lambda message: message.text == "ℹ️ Общие требования к маркировке")
 async def show_marketing(message: types.Message):
     await message.answer(MARKETING_REQUIREMENTS, parse_mode="Markdown")
 
-# OLV (с файлом)
 @dp.message(lambda message: message.text == "📹 OLV")
 async def show_olv(message: types.Message):
     data = TECH_REQUIREMENTS["olv"]
@@ -266,12 +263,10 @@ async def show_olv(message: types.Message):
     )
     await send_file_if_exists(message, "olv.xlsx")
 
-# Display (меню)
 @dp.message(lambda message: message.text == "🖼 Display")
 async def show_display_menu(message: types.Message):
     await message.answer("Выбери тип баннера:", reply_markup=display_keyboard)
 
-# onCTV Apps (с файлом)
 @dp.message(lambda message: message.text == "📺 onCTV Apps")
 async def show_onctv(message: types.Message):
     data = TECH_REQUIREMENTS["onctv"]
@@ -281,12 +276,10 @@ async def show_onctv(message: types.Message):
     )
     await send_file_if_exists(message, "onctv.xlsx")
 
-# TCL (меню)
 @dp.message(lambda message: message.text == "📺 TCL")
 async def show_tcl_menu(message: types.Message):
     await message.answer("Выбери тип креатива для TCL:", reply_markup=tcl_keyboard)
 
-# Xiaomi (меню)
 @dp.message(lambda message: message.text == "📺 Xiaomi")
 async def show_xiaomi_menu(message: types.Message):
     await message.answer(
@@ -295,7 +288,6 @@ async def show_xiaomi_menu(message: types.Message):
         parse_mode="Markdown"
     )
 
-# Haier
 @dp.message(lambda message: message.text == "📺 Haier")
 async def show_haier(message: types.Message):
     data = TECH_REQUIREMENTS["haier_banner"]
@@ -304,7 +296,7 @@ async def show_haier(message: types.Message):
         parse_mode="Markdown"
     )
 
-# ========== ОБРАБОТКА INLINE-КНОПОК ==========
+# ========== INLINE КНОПКИ ==========
 @dp.callback_query()
 async def handle_callback(callback: types.CallbackQuery):
     # Display
@@ -368,11 +360,35 @@ async def handle_callback(callback: types.CallbackQuery):
     
     await callback.answer()
 
-# ========== ЗАПУСК ==========
+# ========== ЗАПУСК НА RENDER (с веб-хуком) ==========
 async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
-    print("🤖 Бот-справочник запущен!")
-    await dp.start_polling(bot)
+    # Устанавливаем веб-хук
+    await bot.set_webhook(f"{URL}/telegram", allowed_updates=["message", "callback_query"])
+    
+    # Создаём Starlette-приложение для обработки веб-хуков
+    async def telegram_webhook(request: Request) -> Response:
+        try:
+            data = await request.json()
+            update = Update(**data)
+            await dp.feed_update(bot, update)
+            return Response()
+        except Exception as e:
+            logging.error(f"Webhook error: {e}")
+            return Response(status_code=500)
+    
+    async def health(request: Request) -> PlainTextResponse:
+        return PlainTextResponse("OK")
+    
+    starlette_app = Starlette(routes=[
+        Route("/telegram", telegram_webhook, methods=["POST"]),
+        Route("/healthcheck", health, methods=["GET"]),
+    ])
+    
+    # Запускаем сервер
+    import uvicorn
+    config = uvicorn.Config(starlette_app, host="0.0.0.0", port=PORT, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
 
 if __name__ == "__main__":
     asyncio.run(main())
